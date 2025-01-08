@@ -1,8 +1,3 @@
-// pubspec.yaml
-// Añade estas dependencias:
-// sensors_plus: ^1.4.1
-// web_socket_channel: ^2.4.0
-
 import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -45,7 +40,7 @@ class _GyroscopePageState extends State<GyroscopePage> {
   void connectToServer() {
     try {
       channel = WebSocketChannel.connect(
-        Uri.parse('ws://$serverIp:$serverPort'),
+        Uri.parse('wss://$serverIp:$serverPort'),
       );
       setState(() {
         isConnected = true;
@@ -58,30 +53,63 @@ class _GyroscopePageState extends State<GyroscopePage> {
     }
   }
 
-void startGyroscopeStream() {
-  // Anuncia el tópico con el tipo correcto
-  final advertiseMessage = {
-    'op': 'advertise',
-    'topic': '/iphone/gyro',
-    'type': 'geometry_msgs/Twist'
-  };
-  channel!.sink.add(jsonEncode(advertiseMessage));
+  void startGyroscopeStream() {
+    // Anuncia el tópico con el tipo correcto
+    final advertiseMessage = {
+      'op': 'advertise',
+      'topic': '/iphone/gyro',
+      'type': 'geometry_msgs/Twist'
+    };
+    channel!.sink.add(jsonEncode(advertiseMessage));
 
-  // Publica datos del giroscopio
-  gyroscopeEvents.listen((GyroscopeEvent event) {
+    // Publica datos del giroscopio
+    gyroscopeEvents.listen((GyroscopeEvent event) {
+      if (isConnected && channel != null) {
+        final gyroData = {
+          'op': 'publish',
+          'topic': '/iphone/gyro',
+          'msg': {
+            'linear': {'x': 0.0, 'y': 0.0, 'z': 0.0},
+            'angular': {'x': event.x, 'y': event.y, 'z': event.z}
+          }
+        };
+        channel!.sink.add(jsonEncode(gyroData));
+      }
+    });
+  }
+
+  void sendTakeoffStartCommand() {
     if (isConnected && channel != null) {
-      final gyroData = {
+      final takeoffCommand = {
         'op': 'publish',
-        'topic': '/iphone/gyro',
-        'msg': {
-          'linear': {'x': 0.0, 'y': 0.0, 'z': 0.0}, // Usamos 0 para los valores lineales
-          'angular': {'x': event.x, 'y': event.y, 'z': event.z} // Valores del giroscopio
-        }
+        'topic': '/drone/control',
+        'msg': {'data': 'takeoff_start'}
       };
-      channel!.sink.add(jsonEncode(gyroData));
+      channel!.sink.add(jsonEncode(takeoffCommand));
     }
-  });
-}
+  }
+
+  void sendTakeoffStopCommand() {
+    if (isConnected && channel != null) {
+      final takeoffCommand = {
+        'op': 'publish',
+        'topic': '/drone/control',
+        'msg': {'data': 'takeoff_stop'}
+      };
+      channel!.sink.add(jsonEncode(takeoffCommand));
+    }
+  }
+
+  void sendLandCommand() {
+    if (isConnected && channel != null) {
+      final landCommand = {
+        'op': 'publish',
+        'topic': '/drone/control',
+        'msg': {'data': 'land'}
+      };
+      channel!.sink.add(jsonEncode(landCommand));
+    }
+  }
 
   @override
   void dispose() {
@@ -105,6 +133,19 @@ void startGyroscopeStream() {
                 color: isConnected ? Colors.green : Colors.red,
                 fontSize: 20,
               ),
+            ),
+            GestureDetector(
+              onLongPressStart: (_) => sendTakeoffStartCommand(),
+              onLongPressEnd: (_) => sendTakeoffStopCommand(),
+              child: ElevatedButton(
+                onPressed: null, // Disabled onPressed to prevent single tap
+                child: const Text('Takeoff (Hold)'),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: sendLandCommand,
+              child: const Text('Land'),
             ),
             StreamBuilder<GyroscopeEvent>(
               stream: gyroscopeEvents,
