@@ -26,6 +26,7 @@ class GyroscopePage extends StatefulWidget {
 class _GyroscopePageState extends State<GyroscopePage> {
   WebSocketChannel? channel;
   bool isConnected = false;
+  bool isTakeoffPressed = false;
   String serverIp = '192.168.1.161'; // Cambia a la IP de tu servidor ROS2
   //String serverIp = '10.0.2.2'; // ip emulador de android studio
   String serverPort = '9090';
@@ -134,18 +135,44 @@ class _GyroscopePageState extends State<GyroscopePage> {
                 fontSize: 20,
               ),
             ),
+            const SizedBox(height: 16),
             GestureDetector(
-              onLongPressStart: (_) => sendTakeoffStartCommand(),
-              onLongPressEnd: (_) => sendTakeoffStopCommand(),
+              onLongPressStart: (_) {
+                setState(() => isTakeoffPressed = true);
+                sendTakeoffStartCommand();
+              },
+              onLongPressEnd: (_) {
+                setState(() => isTakeoffPressed = false);
+                sendTakeoffStopCommand();
+              },
               child: ElevatedButton(
-                onPressed: null, // Disabled onPressed to prevent single tap
-                child: const Text('Takeoff (Hold)'),
+                onPressed: () {}, // Esto mantiene el botón activo
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isTakeoffPressed ? Colors.blue[700] : null,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                ),
+                child: const Text(
+                  'Takeoff (Hold)',
+                  style: TextStyle(fontSize: 16),
+                ),
               ),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: sendLandCommand,
-              child: const Text('Land'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
+              ),
+              child: const Text(
+                'Land',
+                style: TextStyle(fontSize: 16),
+              ),
             ),
             StreamBuilder<GyroscopeEvent>(
               stream: gyroscopeEvents,
