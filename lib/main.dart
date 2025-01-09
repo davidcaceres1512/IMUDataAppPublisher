@@ -36,12 +36,13 @@ class _GyroscopePageState extends State<GyroscopePage> {
     super.initState();
     connectToServer();
     startGyroscopeStream();
+    startCommandPublisher(); // Añadimos esta línea
   }
 
   void connectToServer() {
     try {
       channel = WebSocketChannel.connect(
-        Uri.parse('wss://$serverIp:$serverPort'),
+        Uri.parse('ws://$serverIp:$serverPort'),
       );
       setState(() {
         isConnected = true;
@@ -52,6 +53,15 @@ class _GyroscopePageState extends State<GyroscopePage> {
         isConnected = false;
       });
     }
+  }
+
+  void startCommandPublisher() {
+    final advertiseMessage = {
+      'op': 'advertise',
+      'topic': '/drone/commands',
+      'type': 'std_msgs/String'
+    };
+    channel!.sink.add(jsonEncode(advertiseMessage));
   }
 
   void startGyroscopeStream() {
@@ -83,8 +93,10 @@ class _GyroscopePageState extends State<GyroscopePage> {
     if (isConnected && channel != null) {
       final takeoffCommand = {
         'op': 'publish',
-        'topic': '/drone/control',
-        'msg': {'data': 'takeoff_start'}
+        'topic': '/drone/commands',
+        'msg': {
+          'data': 'TAKEOFF_START'
+        }
       };
       channel!.sink.add(jsonEncode(takeoffCommand));
     }
@@ -94,8 +106,10 @@ class _GyroscopePageState extends State<GyroscopePage> {
     if (isConnected && channel != null) {
       final takeoffCommand = {
         'op': 'publish',
-        'topic': '/drone/control',
-        'msg': {'data': 'takeoff_stop'}
+        'topic': '/drone/commands',
+        'msg': {
+          'data': 'TAKEOFF_STOP'
+        }
       };
       channel!.sink.add(jsonEncode(takeoffCommand));
     }
@@ -105,8 +119,10 @@ class _GyroscopePageState extends State<GyroscopePage> {
     if (isConnected && channel != null) {
       final landCommand = {
         'op': 'publish',
-        'topic': '/drone/control',
-        'msg': {'data': 'land'}
+        'topic': '/drone/commands',
+        'msg': {
+          'data': 'LAND'
+        }
       };
       channel!.sink.add(jsonEncode(landCommand));
     }
