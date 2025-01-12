@@ -201,3 +201,9 @@ if __name__ == '__main__':
 3. **El dispositivo no se conecta al servidor**:
    - Verifica que el dispositivo y el servidor están en la misma red.
    - Asegúrate de usar la IP correcta del servidor.
+
+
+
+
+
+
